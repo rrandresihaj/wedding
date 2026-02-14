@@ -1,0 +1,109 @@
+// 1. CONFIGURATION - Base de données locale
+const GUESTS_DB = [
+    { 
+        id: "INV001", 
+        nom: "Jean Dupont", 
+        email: "jean@example.com", 
+        acces: { ceremonie: true, cocktail: true, diner: true, soiree: true, brunch: false } 
+    },
+    { 
+        id: "INV002", 
+        nom: "Marie Curie", 
+        email: "", 
+        acces: { ceremonie: true, cocktail: true, diner: false, soiree: false, brunch: true } 
+    }
+];
+
+// Libellés propres pour l'affichage
+const EVENT_NAMES = {
+    ceremonie: "Cérémonie Laïque (15h)",
+    cocktail: "Cocktail de bienvenue (17h)",
+    diner: "Dîner de prestige (20h)",
+    soiree: "Soirée dansante",
+    brunch: "Brunch du lendemain"
+};
+
+// 2. INITIALISATION EMAILJS
+(function() {
+    // REMPLACER PAR TON PUBLIC_KEY
+    emailjs.init("VOTRE_PUBLIC_KEY");
+})();
+
+let currentGuest = null;
+
+// 3. FONCTION DE VÉRIFICATION DU CODE
+function checkCode() {
+    const codeInput = document.getElementById('guest-code').value.trim().toUpperCase();
+    const errorMsg = document.getElementById('error-msg');
+    
+    currentGuest = GUESTS_DB.find(g => g.id === codeInput);
+
+    if (currentGuest) {
+        errorMsg.style.display = 'none';
+        showForm();
+    } else {
+        errorMsg.style.display = 'block';
+    }
+}
+
+// 4. GÉNÉRATION DYNAMIQUE DU FORMULAIRE
+function showForm() {
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('rsvp-section').style.display = 'block';
+    document.getElementById('welcome-name').innerText = `Bonjour ${currentGuest.nom} !`;
+    document.getElementById('guest-email').value = currentGuest.email;
+
+    const container = document.getElementById('dynamic-events');
+    container.innerHTML = '<h3>Serez-vous présent ?</h3>';
+
+    // On boucle sur les accès autorisés de l'invité
+    for (const [eventKey, hasAccess] of Object.entries(currentGuest.acces)) {
+        if (hasAccess) {
+            const div = document.createElement('div');
+            div.className = 'event-row';
+            div.innerHTML = `
+                <span>${EVENT_NAMES[eventKey]}</span>
+                <select name="${eventKey}" class="event-response">
+                    <option value="Présent">Présent</option>
+                    <option value="Absent">Absent</option>
+                </select>
+            `;
+            container.appendChild(div);
+        }
+    }
+}
+
+// 5. ENVOI DES DONNÉES
+document.getElementById('rsvp-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.innerText = "Envoi en cours...";
+    btn.disabled = true;
+
+    // Récupération des présences
+    let recapPresence = "";
+    document.querySelectorAll('.event-row').forEach(row => {
+        const event = row.querySelector('span').innerText;
+        const status = row.querySelector('select').value;
+        recapPresence += `${event} : ${status}\n`;
+    });
+
+    const templateParams = {
+        to_name: "L'organisateur",
+        from_name: currentGuest.nom,
+        guest_email: document.getElementById('guest-email').value,
+        message: recapPresence,
+        notes: document.getElementById('guest-notes').value
+    };
+
+    // REMPLACER PAR TES IDENTIFIANTS EMAILJS (SERVICE_ID, TEMPLATE_ID)
+    emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams)
+        .then(() => {
+            document.getElementById('rsvp-section').style.display = 'none';
+            document.getElementById('success-msg').style.display = 'block';
+        }, (error) => {
+            alert("Erreur lors de l'envoi : " + JSON.stringify(error));
+            btn.disabled = false;
+            btn.innerText = "Réessayer";
+        });
+});

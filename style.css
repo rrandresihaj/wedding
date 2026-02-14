@@ -1,0 +1,66 @@
+:root {
+    --primary: #8e735b;
+    --bg: #f9f7f2;
+    --text: #333;
+    --error: #c0392b;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+}
+
+header h1 { font-style: italic; color: var(--primary); }
+
+.input-group { margin: 20px 0; text-align: left; }
+
+input[type="text"], input[type="email"], textarea {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: 0.3s;
+    width: 100%;
+}
+
+button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.event-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.error { color: var(--error); font-size: 0.9rem; margin-top: 10px; }
+
+#success-msg { color: #27ae60; font-weight: bold; margin-top: 20px; }

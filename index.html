@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSVP - Notre Mariage</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Célébrons ensemble</h1>
+            <p>Veuillez entrer votre code d'invitation pour confirmer votre présence.</p>
+        </header>
+
+        <section id="auth-section">
+            <div class="input-group">
+                <input type="text" id="guest-code" placeholder="Ex: MARIAGE2026" autocomplete="off">
+                <button onclick="checkCode()">Accéder au formulaire</button>
+            </div>
+            <p id="error-msg" class="error" style="display: none;">Désolé, ce code n'est pas reconnu.</p>
+        </section>
+
+        <section id="rsvp-section" style="display: none;">
+            <h2 id="welcome-name">Bonjour !</h2>
+            <form id="rsvp-form">
+                <div id="dynamic-events">
+                    </div>
+                
+                <div class="input-group">
+                    <label for="guest-email">Votre email (pour la confirmation) :</label>
+                    <input type="email" id="guest-email" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="guest-notes">Un petit mot ou régime spécial ?</label>
+                    <textarea id="guest-notes" rows="3"></textarea>
+                </div>
+
+                <button type="submit" id="submit-btn">Confirmer ma venue</button>
+            </form>
+        </section>
+
+        <footer id="success-msg" style="display: none;">
+            <p>Merci ! Votre réponse a bien été envoyée.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

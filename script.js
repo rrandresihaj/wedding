@@ -1,43 +1,44 @@
 // Remplace cette URL par celle que tu as obtenue lors de la "Publication sur le web"
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1xGSzmMTYaKRLiaclOcaPFNViauutaaXqhRJ25rW8XTKeE1eD5njclI3yAVc0l4CCpI9frHhkhV2b/pub?gid=0&single=true&output=csv";
 
-// Configuration EmailJS
+
+// Identifiants EmailJS
 const EMAILJS_PUBLIC_KEY = "TA_PUBLIC_KEY";
 const EMAILJS_SERVICE_ID = "TON_SERVICE_ID";
 const EMAILJS_TEMPLATE_ID = "TON_TEMPLATE_ID";
 
-// Mapping des noms pour l'affichage
+// Libellés pour l'affichage
 const EVENT_LABELS = {
-    ceremonie: "Cérémonie",
-    cocktail: "Cocktail",
-    diner: "Dîner",
-    soiree: "Soirée",
-    brunch: "Brunch"
+    ceremonie: "💍 Cérémonie",
+    cocktail: "🥂 Cocktail",
+    diner: "🍽️ Dîner",
+    soiree: "💃 Soirée",
+    brunch: "🥐 Brunch"
 };
 
-let GUESTS_DB = [];
-let currentFamily = []; // Ce sera un tableau de personnes
+/* LOGIQUE DU CODE 
+   ----------------------------------------------------------
+*/
+let GUESTS_DB = []; // Contiendra toutes les lignes du CSV
+let currentFamily = []; // Contiendra les membres de la famille connectée
 
-// 2. CHARGEMENT DES DONNÉES (Au démarrage)
+// 1. Chargement de la base de données au lancement de la page
 async function loadGuestsData() {
     try {
         const response = await fetch(SHEET_CSV_URL);
         const data = await response.text();
-        
-        const lines = data.split('\n');
-        // On suppose que la ligne 0 est l'en-tête, on commence à 1
-        // Structure attendue du CSV : Code, Prenom, Ceremonie, Cocktail, Diner, Soiree, Brunch
-        
-        GUESTS_DB = lines.slice(1).map(line => {
+        const lines = data.split('\n').slice(1); // On ignore la ligne d'en-tête
+
+        GUESTS_DB = lines.map(line => {
             const cols = line.split(',');
-            if (cols.length < 2) return null; // Ligne vide
+            if (cols.length < 2) return null; // Sécurité ligne vide
             
-            // Nettoyage des guillemets éventuels et espaces
-            const clean = (val) => val ? val.replace(/['"]+/g, '').trim() : "";
-            const isTrue = (val) => val && clean(val).toUpperCase() === 'TRUE';
+            // Fonction utilitaire pour nettoyer les textes (enlève les guillemets Excel)
+            const clean = (txt) => txt ? txt.replace(/['"]+/g, '').trim() : "";
+            const isTrue = (val) => clean(val).toUpperCase() === 'TRUE';
 
             return {
-                familyId: clean(cols[0]).toUpperCase(),
+                familyId: clean(cols[0]).toUpperCase(), // Le Code Famille
                 prenom: clean(cols[1]),
                 acces: {
                     ceremonie: isTrue(cols[2]),
@@ -47,99 +48,92 @@ async function loadGuestsData() {
                     brunch: isTrue(cols[6])
                 }
             };
-        }).filter(g => g !== null);
-
-        console.log("Base de données chargée : " + GUESTS_DB.length + " invités.");
-    } catch (error) {
-        console.error("Erreur CSV:", error);
-        alert("Erreur de chargement des invités.");
+        }).filter(x => x !== null);
+        
+        console.log("Données chargées : " + GUESTS_DB.length + " invités trouvés.");
+    } catch (e) {
+        console.error("Erreur CSV:", e);
     }
 }
 
-// Initialisation
+// Initialisation immédiate
 (function() {
     emailjs.init(EMAILJS_PUBLIC_KEY);
     loadGuestsData();
 })();
 
-// 3. VÉRIFICATION DU CODE (Login)
+// 2. Vérification du Code Famille
 function checkCode() {
     const codeInput = document.getElementById('guest-code').value.trim().toUpperCase();
-    const errorMsg = document.getElementById('error-msg');
     
-    // On filtre pour trouver TOUS les membres de la famille
-    currentFamily = GUESTS_DB.filter(member => member.familyId === codeInput);
+    // On cherche TOUS les membres qui ont ce code
+    currentFamily = GUESTS_DB.filter(p => p.familyId === codeInput);
 
     if (currentFamily.length > 0) {
-        errorMsg.style.display = 'none';
+        document.getElementById('error-msg').style.display = 'none';
         showForm();
     } else {
-        errorMsg.style.display = 'block';
+        document.getElementById('error-msg').style.display = 'block';
     }
 }
 
-// 4. AFFICHAGE DYNAMIQUE (Boucle sur chaque membre)
+// 3. Affichage du formulaire pour toute la famille
 function showForm() {
+    // Changement d'écran
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('rsvp-section').style.display = 'block';
     
-    // Titre personnalisé
-    const familyName = currentFamily[0].familyId; // Ou un nom générique
-    document.getElementById('welcome-name').innerText = `Famille ${familyName} - Bienvenue !`;
+    // Titre personnalisé avec le Prénom du premier membre (souvent le chef de famille) ou le Code
+    document.getElementById('welcome-name').innerText = `Bienvenue Famille ${currentFamily[0].familyId} !`;
 
     const container = document.getElementById('dynamic-events');
-    container.innerHTML = ''; // Reset
+    container.innerHTML = ''; // Nettoyage
 
-    // Pour chaque membre de la famille trouvée...
-    currentFamily.forEach((member, index) => {
-        const memberDiv = document.createElement('div');
-        memberDiv.className = 'member-card'; // Classe CSS à ajouter
-        memberDiv.style.border = "1px solid #ddd";
-        memberDiv.style.padding = "15px";
-        memberDiv.style.marginBottom = "20px";
-        memberDiv.style.borderRadius = "8px";
-        memberDiv.style.background = "#fff";
-
-        let htmlContent = `<h3>👤 ${member.prenom}</h3>`;
+    // BOUCLE : On crée une "Carte" pour chaque membre de la famille
+    currentFamily.forEach(member => {
+        const card = document.createElement('div');
+        card.className = 'family-member-card';
         
-        // Boucle sur les accès
-        for (const [evt, allowed] of Object.entries(member.acces)) {
-            if (allowed) {
-                // Création d'un ID unique pour chaque input : prenom_event
-                const inputId = `${member.prenom}_${evt}`;
-                htmlContent += `
-                    <div class="event-row">
-                        <label for="${inputId}">${EVENT_LABELS[evt]}</label>
-                        <select id="${inputId}" class="rsvp-response" data-member="${member.prenom}" data-event="${EVENT_LABELS[evt]}">
-                            <option value="Présent">Présent</option>
-                            <option value="Absent">Absent</option>
-                        </select>
+        let html = `<h3 class="member-name">${member.prenom}</h3><div class="member-options">`;
+
+        // A. Les cases à cocher pour les événements
+        for (const [key, label] of Object.entries(EVENT_LABELS)) {
+            // On affiche l'option SEULEMENT si la personne est invitée (TRUE dans le CSV)
+            if (member.acces[key]) {
+                html += `
+                    <div class="option-row">
+                        <span class="label">${label}</span>
+                        <div class="radio-group">
+                            <label><input type="radio" name="${member.prenom}_${key}" value="Présent" checked> Oui</label>
+                            <label><input type="radio" name="${member.prenom}_${key}" value="Absent"> Non</label>
+                        </div>
                     </div>
                 `;
             }
         }
 
-        // Ajout option Repas (seulement si invité au dîner)
+        // B. Le choix du repas (Seulement si invité au Dîner)
         if (member.acces.diner) {
-            htmlContent += `
-                <div class="meal-row" style="margin-top:10px; border-top:1px dashed #ccc; padding-top:10px;">
-                    <label>🍽️ Choix du repas :</label>
-                    <select class="meal-choice" data-member="${member.prenom}">
-                        <option value="Standard">Classique (Viande/Poisson)</option>
+            html += `
+                <div class="meal-row">
+                    <label>🍖 Choix du plat :</label>
+                    <select name="${member.prenom}_repas" class="meal-select">
+                        <option value="Classique (Viande)">Classique (Viande)</option>
                         <option value="Végétarien">Végétarien</option>
                         <option value="Enfant">Menu Enfant</option>
-                        <option value="Allergie">Spécial (préciser en notes)</option>
+                        <option value="Aucun">Ne mange pas</option>
                     </select>
                 </div>
             `;
         }
 
-        memberDiv.innerHTML = htmlContent;
-        container.appendChild(memberDiv);
+        html += `</div>`; // Fin member-options
+        card.innerHTML = html;
+        container.appendChild(card);
     });
 }
 
-// 5. ENVOI DU FORMULAIRE
+// 4. Envoi des réponses via EmailJS
 document.getElementById('rsvp-form').addEventListener('submit', function(e) {
     e.preventDefault();
     const btn = document.getElementById('submit-btn');
@@ -147,41 +141,48 @@ document.getElementById('rsvp-form').addEventListener('submit', function(e) {
     btn.disabled = true;
 
     // Construction du message récapitulatif
-    let fullMessage = "";
+    let messageRecap = "RÉPONSE RSVP MARIAGE\n====================\n\n";
 
-    // 1. Récupérer les présences
-    const responses = document.querySelectorAll('.rsvp-response');
-    responses.forEach(select => {
-        const who = select.getAttribute('data-member');
-        const what = select.getAttribute('data-event');
-        const answer = select.value;
-        fullMessage += `${who} - ${what} : ${answer}\n`;
+    // Pour chaque membre, on récupère ses choix
+    currentFamily.forEach(member => {
+        messageRecap += `👤 ${member.prenom}\n`;
+        
+        // Récupération des présences
+        for (const key of Object.keys(EVENT_LABELS)) {
+            if (member.acces[key]) {
+                const radios = document.getElementsByName(`${member.prenom}_${key}`);
+                let val = "Non spécifié";
+                for (const r of radios) { if (r.checked) val = r.value; }
+                messageRecap += `- ${EVENT_LABELS[key]} : ${val}\n`;
+            }
+        }
+
+        // Récupération du repas
+        if (member.acces.diner) {
+            const repasSelect = document.querySelector(`select[name="${member.prenom}_repas"]`);
+            if (repasSelect) {
+                messageRecap += `🍽️ REPAS : ${repasSelect.value}\n`;
+            }
+        }
+        messageRecap += "\n--------------------\n";
     });
 
-    // 2. Récupérer les repas
-    fullMessage += "\n--- REPAS ---\n";
-    const meals = document.querySelectorAll('.meal-choice');
-    meals.forEach(select => {
-        const who = select.getAttribute('data-member');
-        const choice = select.value;
-        // On ne note le repas que si la personne n'a pas décliné le dîner (logique simplifiée)
-        // Pour faire simple ici, on envoie tout le choix
-        fullMessage += `${who} : ${choice}\n`;
-    });
-
-    const templateParams = {
-        family_id: currentFamily[0].familyId,
-        guest_email: document.getElementById('guest-email').value,
-        message: fullMessage,
+    // Paramètres envoyés à EmailJS
+    const params = {
+        famille: currentFamily[0].familyId,
+        email_contact: document.getElementById('guest-email').value,
+        message: messageRecap,
         notes: document.getElementById('guest-notes').value
     };
 
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
         .then(() => {
             document.getElementById('rsvp-section').style.display = 'none';
             document.getElementById('success-msg').style.display = 'block';
-        }, (error) => {
-            alert("Erreur : " + JSON.stringify(error));
+        })
+        .catch((err) => {
+            alert("Oups ! Une erreur est survenue. Contactez-nous.");
+            console.error(err);
             btn.disabled = false;
             btn.innerText = "Réessayer";
         });

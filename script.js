@@ -1,5 +1,5 @@
 // Remplace cette URL par celle que tu as obtenue lors de la "Publication sur le web"
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1xGSzmMTYaKRLiaclOcaPFNViauutaaXqhRJ25rW8XTKeE1eD5njclI3yAVc0l4CCpI9frHhkhV2b/pub?output=csv";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1xGSzmMTYaKRLiaclOcaPFNViauutaaXqhRJ25rW8XTKeE1eD5njclI3yAVc0l4CCpI9frHhkhV2b/pub?gid=0&single=true&output=csv";
 
 let GUESTS_DB = [];
 
